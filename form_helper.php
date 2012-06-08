@@ -36,6 +36,7 @@ class FH_Form {
 	
 	function add_message($message, $field) {
 		array_push($this->messages, new FH_Message($message, $field));
+		$field->add_message($message);
 	}
 	
 	function get_messages() {
@@ -221,6 +222,7 @@ class FH_Field {
 	private $value;
 	private $options;
 	private $statuses;
+	private $messages;
 	private $min = null;
 	private $max = null;
 	
@@ -303,6 +305,10 @@ class FH_Field {
 		return $this->value;
 	}
 	
+	function get_sql_value() {
+		return mysql_real_escape_string($this->value);
+	}
+	
 	function set_options($vOptions) {
 		$this->options = $vOptions;
 	}
@@ -330,6 +336,15 @@ class FH_Field {
 		}
 	}
 	
+	function add_message($vMessage) {
+		array_push($this->messages, $vMessage);
+	}
+
+	function get_messages() {
+		$this->messages;
+	}
+
+	
 	function remove_status($vStatus) {
 		if (not(in_array($vStatus, $this->statuses))) {
 			$new_statuses = Array();
@@ -356,6 +371,46 @@ class FH_Field {
 				$html .= " error";
 			}
 		}
+		# lets add the name of the field to the class
+		$html .= " fieldname-" . strtolower(preg_replace("/\W/", '', $this->name));
+		if ($this->format == FH_Formats::TEXT) {
+			$html .= " field-text";
+		} else if ($this->format == FH_Formats::DATE) {
+			$html .= " field-date";
+		} else if ($this->format == FH_Formats::TIME) {
+			$html .= " field-time";
+		} else if ($this->format == FH_Formats::DATETIME) {
+			$html .= " field-datetime";
+		} else if ($this->format == FH_Formats::PRICE) {
+			$html .= " field-price";
+		} else if ($this->format == FH_Formats::BOOLEAN) {
+			$html .= " field-boolean";
+		} else if ($this->format == FH_Formats::CURRENCY) {
+			$html .= " field-currency";
+		} else if ($this->format == FH_Formats::HIDDEN) {
+			$html .= " field-hidden";
+		} else if ($this->format == FH_Formats::STATE) {
+			$html .= " field-state";
+		} else if ($this->format == FH_Formats::ZIP) {
+			$html .= " field-zip";
+		} else if ($this->format == FH_Formats::EMAIL) {
+			$html .= " field-email";
+		} else if ($this->format == FH_Formats::CC) {
+			$html .= " field-cc";
+		} else if ($this->format == FH_Formats::CCCODE) {
+			$html .= " field-cccode";
+		} else if ($this->format == FH_Formats::PHONE) {
+			$html .= " field-phone";
+		} else if ($this->format == FH_Formats::INTEGER) {
+			$html .= " field-integer";
+		} else if ($this->format == FH_Formats::TEXTAREA) {
+			$html .= " field-textarea";
+		} else if ($this->format == FH_Formats::FLOAT) {
+			$html .= " field-float";
+		} else if ($this->format == FH_Formats::SELECT) {
+			$html .= " field-select";
+		}
+		
 		return $html;
 	}
 	
@@ -364,6 +419,10 @@ class FH_Field {
 		if ($this->is_required()) {
 			$html .= " *";
 		}
+		if (sizeof($this->messages) > 0) {
+			$html .= " (" . join(", ", $this->messages) . ")";
+		}
+		
 		$html .= "</label>";
 		return $html;
 	}
@@ -422,11 +481,20 @@ class FH_Field {
 		} else if ($this->get_field_type() == "select") {
 			$html .= ">";
 			foreach ($this->get_options() as $option) {
-				$html .= "<option value=\"" . $option[1] . "\"";
-				if ($option[1] == $this->get_value()) {
-					$html .= " selected=\"selected\"";
+				# check to see if the $option is an array if so then first item is the value second is the description
+				if (gettype($option) == "array") {
+					$html .= "<option value=\"" . $option[1] . "\"";
+					if ($option[1] == $this->get_value()) {
+						$html .= " selected=\"selected\"";
+					}
+					$html .= ">" . $option[0] . "</option>";
+				} else {
+					$html .= "<option value=\"" . $option . "\"";
+					if ($option == $this->get_value()) {
+						$html .= " selected=\"selected\"";
+					}
+					$html .= ">" . $option . "</option>";
 				}
-				$html .= ">" . $option[0] . "</option>";
 			}
 			$html .= "</select>";
 		} else {
@@ -437,6 +505,7 @@ class FH_Field {
 	
 	function __construct($vName, $vLabel, $properties = Array()) {
 		$this->statuses = Array();
+		$this->messages = Array();
 		$this->set_name($vName);
 		$this->set_id($vName);
 		$this->set_label($vLabel);
@@ -447,6 +516,9 @@ class FH_Field {
 			$this->set_format($properties["format"]);
 		}
 		if (isset($properties["value"])) {
+			$this->set_value($properties["value"]);
+		}
+		if (isset($properties["default"])) {
 			$this->set_value($properties["value"]);
 		}
 		if (isset($properties["options"])) {
