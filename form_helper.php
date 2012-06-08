@@ -77,7 +77,7 @@ class FH_Form {
 				# some filters taken from
 				# http://komunitasweb.com/2009/03/10-practical-php-regular-expression-recipes/
 				if ($field->get_format() == FH_Formats::DATE) {
-					if (preg_match("/^(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{2,4})$/", $value, $matches)) {
+					if (preg_match("/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})$/", $value, $matches)) {
 						$value = $matches[1] . "/" . $matches[2] . "/" . $matches[3];
 					} else {
 						$field->add_status(FH_Statuses::ERROR);
